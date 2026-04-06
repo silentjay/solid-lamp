@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Pebble Gym Tracker Setup</title>
+    
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            padding: 20px;
+            max-width: 400px; /* Perfect for phone screens */
+            margin: 0 auto;
+        }
+        .card {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        input, select, button {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 10px;
+            box-sizing: border-box; /* Ensures padding doesn't break width */
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        button {
+            background-color: #FF4700; /* Pebble Orange! */
+            color: white;
+            font-weight: bold;
+            border: none;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #e64000;
+        }
+        .exercise-item {
+            background: #eee;
+            padding: 10px;
+            margin-bottom: 5px;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+
+    <h2>Gym Routine Setup</h2>
+
+    <div class="card">
+        <label>Routine Name:</label>
+        <input type="text" id="routineName" placeholder="e.g., Push Day, Leg Day">
+    </div>
+
+    <div class="card">
+        <h3>Add Exercise</h3>
+        <select id="exerciseSelect">
+            </select>
+        
+        <input type="number" id="targetSets" placeholder="Target Sets (e.g., 3)">
+        <input type="number" id="targetReps" placeholder="Target Reps (e.g., 10)">
+        <input type="number" id="targetWeight" placeholder="Target Weight in kg (e.g., 60)">
+        
+        <button onclick="addExercise()">+ Add to Routine</button>
+    </div>
+
+    <div class="card">
+        <h3>Your Routine:</h3>
+        <div id="routineList">
+            <p id="emptyMessage" style="color: gray; font-size: 12px;">No exercises added yet.</p>
+        </div>
+    </div>
+
+    <button onclick="saveAndSend()">Save & Send to Pebble</button>
+
+    <script>
+        // 1. A hardcoded list of exercises
+        const exerciseDatabase = [
+            "Bench Press", "Squat", "Deadlift", "Overhead Press", 
+            "Pull Ups", "Barbell Row", "Bicep Curls", "Tricep Extensions", 
+            "Dumbbell Flies", "French Press", "Target Abs", "Leg Raise", 
+            "Chest Pull", "Facepull", "Hammer Curl", "Cable Crunch", "Pallof Press", 
+            "Leg Press", "Leg Extension", "Leg Curl", "Calf"
+        ];
+
+        // 2. An empty "Array" (a list) to hold the user's routine
+        let myRoutine = [];
+
+        // 3. When the page loads, fill the dropdown menu with our exercises
+        window.onload = function() {
+            const dropdown = document.getElementById("exerciseSelect");
+            
+            // Loop through our database and create an <option> for each
+            for (let i = 0; i < exerciseDatabase.length; i++) {
+                let newOption = document.createElement("option");
+                newOption.value = exerciseDatabase[i];
+                newOption.text = exerciseDatabase[i];
+                dropdown.appendChild(newOption);
+            }
+        };
+
+        // 4. Function that runs when you click "+ Add to Routine"
+        function addExercise() {
+            // Get the values the user typed in
+            const name = document.getElementById("exerciseSelect").value;
+            const sets = document.getElementById("targetSets").value;
+            const reps = document.getElementById("targetReps").value;
+            const weight = document.getElementById("targetWeight").value;
+
+            // Basic check to make sure they filled out the numbers
+            if(sets === "" || reps === "" || weight === "") {
+                alert("Please fill out sets, reps, and weight!");
+                return; // Stop the function here
+            }
+
+            // Create an "Object" representing this one exercise
+            const newExercise = {
+                exerciseName: name,
+                sets: parseInt(sets),
+                reps: parseInt(reps),
+                weight: parseInt(weight)
+            };
+
+            // Add it to our routine array
+            myRoutine.push(newExercise);
+
+            // Update the screen so the user sees it
+            document.getElementById("emptyMessage").style.display = "none"; // Hide empty message
+            
+            const listDiv = document.getElementById("routineList");
+            const exerciseDiv = document.createElement("div");
+            exerciseDiv.className = "exercise-item";
+            exerciseDiv.innerHTML = `<strong>${name}</strong>: ${sets} sets x ${reps} reps @ ${weight}kg`;
+            listDiv.appendChild(exerciseDiv);
+
+            // Clear the inputs for the next exercise
+            document.getElementById("targetSets").value = "";
+            document.getElementById("targetReps").value = "";
+            document.getElementById("targetWeight").value = "";
+        }
+
+        // 5. Function that runs when you click "Save & Send to Pebble"
+        function saveAndSend() {
+            const routineName = document.getElementById("routineName").value;
+            
+            if (myRoutine.length === 0) {
+                alert("Please add at least one exercise to your routine.");
+                return;
+            }
+
+            // Group the name and the exercises into one final Object
+            const finalData = {
+                name: routineName,
+                exercises: myRoutine
+            };
+
+            // Turn our JavaScript Object into a JSON string!
+            const jsonString = JSON.stringify(finalData);
+
+            // Show it to you so you can see what the computer built
+            alert("Success! Here is the JSON data that will be sent to the watch:\n\n" + jsonString);
+
+            // --- PEBBLE SPECIFIC CODE ---
+            // When running inside the Pebble app, this line tells the phone 
+            // to close this web page and send the JSON back to the watch.
+            // (We comment it out for now so it doesn't break while you test on your computer)
+            
+            // window.location.href = "pebblejs://close#" + encodeURIComponent(jsonString);
+        }
+    </script>
+</body>
+</html>
