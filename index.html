@@ -78,7 +78,6 @@
     <button onclick="saveAndSend()">Save & Send to Pebble</button>
 
     <script>
-        // 1. A hardcoded list of exercises
         const exerciseDatabase = [
             "Bench Press", "Squat", "Deadlift", "Overhead Press", 
             "Pull Ups", "Barbell Row", "Bicep Curls", "Tricep Extensions", 
@@ -87,14 +86,10 @@
             "Leg Press", "Leg Extension", "Leg Curl", "Calf"
         ];
 
-        // 2. An empty "Array" (a list) to hold the user's routine
         let myRoutine = [];
 
-        // 3. When the page loads, fill the dropdown menu with our exercises
         window.onload = function() {
             const dropdown = document.getElementById("exerciseSelect");
-            
-            // Loop through our database and create an <option> for each
             for (let i = 0; i < exerciseDatabase.length; i++) {
                 let newOption = document.createElement("option");
                 newOption.value = exerciseDatabase[i];
@@ -103,73 +98,63 @@
             }
         };
 
-        // 4. Function that runs when you click "+ Add to Routine"
         function addExercise() {
-            // Get the values the user typed in
             const name = document.getElementById("exerciseSelect").value;
             const sets = document.getElementById("targetSets").value;
             const reps = document.getElementById("targetReps").value;
             const weight = document.getElementById("targetWeight").value;
 
-            // Basic check to make sure they filled out the numbers
             if(sets === "" || reps === "" || weight === "") {
                 alert("Please fill out sets, reps, and weight!");
-                return; // Stop the function here
+                return;
             }
 
-            // Create an "Object" representing this one exercise
-            const newExercise = {
-                exerciseName: name,
-                sets: parseInt(sets),
-                reps: parseInt(reps),
-                weight: parseInt(weight)
-            };
-
-            // Add it to our routine array
+            const newExercise = { exerciseName: name, sets: parseInt(sets), reps: parseInt(reps), weight: parseInt(weight) };
             myRoutine.push(newExercise);
 
-            // Update the screen so the user sees it
-            document.getElementById("emptyMessage").style.display = "none"; // Hide empty message
-            
+            document.getElementById("emptyMessage").style.display = "none";
             const listDiv = document.getElementById("routineList");
             const exerciseDiv = document.createElement("div");
             exerciseDiv.className = "exercise-item";
             exerciseDiv.innerHTML = `<strong>${name}</strong>: ${sets} sets x ${reps} reps @ ${weight}kg`;
             listDiv.appendChild(exerciseDiv);
 
-            // Clear the inputs for the next exercise
             document.getElementById("targetSets").value = "";
             document.getElementById("targetReps").value = "";
             document.getElementById("targetWeight").value = "";
         }
 
-        // 5. Function that runs when you click "Save & Send to Pebble"
+        // NEW HELPER FUNCTION: This looks for the CloudPebble return URL
+        function getQueryParam(variable, defaultValue) {
+            var query = location.search.substring(1);
+            var vars = query.split('&');
+            for (var i = 0; i < vars.length; i++) {
+                var pair = vars[i].split('=');
+                if (pair[0] === variable) {
+                    return decodeURIComponent(pair[1]);
+                }
+            }
+            return defaultValue || 'pebblejs://close#';
+        }
+
         function saveAndSend() {
             const routineName = document.getElementById("routineName").value;
-            
             if (myRoutine.length === 0) {
-                alert("Please add at least one exercise to your routine.");
+                alert("Please add at least one exercise.");
                 return;
             }
 
-            // Group the name and the exercises into one final Object
-            const finalData = {
-                name: routineName,
-                exercises: myRoutine
-            };
-
-            // Turn our JavaScript Object into a JSON string!
+            const finalData = { name: routineName, exercises: myRoutine };
             const jsonString = JSON.stringify(finalData);
 
-            // Show it to you so you can see what the computer built
-            alert("Success! Here is the JSON data that will be sent to the watch:\n\n" + jsonString);
+            // Hide the alert so it doesn't block the screen
+            // alert("Sending: " + jsonString);
 
-            // --- PEBBLE SPECIFIC CODE ---
-            // When running inside the Pebble app, this line tells the phone 
-            // to close this web page and send the JSON back to the watch.
-            // (We comment it out for now so it doesn't break while you test on your computer)
+            // Find the correct return URL (CloudPebble vs Real Phone)
+            var returnTo = getQueryParam('return_to', 'pebblejs://close#');
             
-            window.location.href = "pebblejs://close#" + encodeURIComponent(jsonString);
+            // Redirect using the correct URL
+            window.location.href = returnTo + encodeURIComponent(jsonString);
         }
     </script>
 </body>
