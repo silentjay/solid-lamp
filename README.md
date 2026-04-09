@@ -1,4 +1,4 @@
-# [App Name] - Smart Gym Tracker for Pebble
+# GymTracker - Smart Gym Tracker for Pebble
 
 A fully-featured, standalone workout tracker for Pebble smartwatches with smart rest timers, haptic coaching, and automatic Google Sheets export. 
 
