@@ -40,6 +40,10 @@ By default, every completed workout is saved to your phone's local storage.
 2. Under the **Workout History** section, click **Download CSV**.
 3. A `.csv` file containing your raw workout data will download to your device, perfect for Excel, Apple Numbers, or any custom tracking software you use.
 
+## Screenshots
+
+<img width="200" height="228" alt="GymTracker_ExerciseWindow" src="https://github.com/user-attachments/assets/19d27131-aff6-4fb8-85f3-6721ba573183" /> <img width="200" height="228" alt="GymTracker_RoutineWindow2" src="https://github.com/user-attachments/assets/05ffe2cc-6cea-437d-b8de-93936819df6d" /> <img width="200" height="228" alt="GymTracker_RoutineWindow" src="https://github.com/user-attachments/assets/41b88dfb-7205-459d-85a1-aa8b2a49720c" /> <img width="200" height="228" alt="GymTracker_SettingsWindow" src="https://github.com/user-attachments/assets/3f7463f5-8141-4a56-8b4e-e9e90c16cd4e" />
+
 ## ☁️ Advanced: Google Sheets Cloud Sync Setup
 
 For power users, you can bypass the manual CSV download and have the watch beam your workouts directly to a private Google Sheet the moment you finish your last set.
