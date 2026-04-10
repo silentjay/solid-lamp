@@ -56,7 +56,7 @@ For power users, you can bypass the manual CSV download and have the watch beam 
 
 ### Step 2: Add the Code
 1. Delete any code currently in the script editor.
-2. In this GitHub repository, open the file named `google_sheets_script.gs`.
+2. In this GitHub repository, open the file named `google_sheets_script.gs`. (https://github.com/oliverano95/solid-lamp/blob/main/google_sheets_script.gs)
 3. Copy all the code from that file and paste it into your Google Apps Script editor.
 4. On line 8 of the code, change the `mySecretPassword` variable to a secure password of your choice.
 5. Click the **Save** icon (the floppy disk).
