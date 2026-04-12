@@ -26,20 +26,27 @@ Pebble.addEventListener('showConfiguration', function(e) {
 // 3. Catch the data when the web page closes
 Pebble.addEventListener('webviewclosed', function(e) {
   if (e.response && e.response !== 'CANCELLED' && e.response !== '[]') {
-    // Decode the URL gibberish back into a JSON object
     var configData = JSON.parse(decodeURIComponent(e.response));
     
-    // Save any updated Google Settings to the phone
-    if (configData.googleUrl !== undefined) localStorage.setItem('googleUrl', configData.googleUrl);
-    if (configData.googlePwd !== undefined) localStorage.setItem('googlePwd', configData.googlePwd);
+    // NEW: If the user clicked "Clear Credentials" on the site, wipe them from the phone
+    if (configData.clearGoogle) {
+      localStorage.removeItem('googleUrl');
+      localStorage.removeItem('googlePwd');
+      console.log('Google Sync credentials wiped from phone.');
+    } else {
+      // Otherwise, save new Google Settings (only if they typed something)
+      if (configData.googleUrl !== undefined && configData.googleUrl.trim() !== "") {
+        localStorage.setItem('googleUrl', configData.googleUrl);
+      }
+      if (configData.googlePwd !== undefined && configData.googlePwd.trim() !== "") {
+        localStorage.setItem('googlePwd', configData.googlePwd);
+      }
+    }
     
-    // If the user clicked "Clear History" on the webpage, wipe the phone's memory
     if (configData.clearHistory) {
       localStorage.setItem('workoutHistory', '[]');
-      console.log('Workout history cleared from phone memory.');
     }
 
-    // Send the new routine data down to the watch (if it exists)
     if (configData.routineData && configData.routineData !== "") {
       Pebble.sendAppMessage({
         "ROUTINE_DATA": configData.routineData
@@ -49,8 +56,6 @@ Pebble.addEventListener('webviewclosed', function(e) {
         console.log("Failed to send routine to watch: " + JSON.stringify(err));
       });
     }
-  } else {
-    console.log('User closed the configuration page without saving.');
   }
 });
 
