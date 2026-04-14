@@ -32,10 +32,18 @@
 
         #exerciseSearch { border: 2px solid #FF4700; background-color: #fffaf5; }
         
-        /* NEW: UI Badges for Drop Sets and Supersets */
         .mod-badge { font-size: 10px; font-weight: bold; padding: 2px 6px; border-radius: 10px; margin-left: 5px; color: white; vertical-align: middle;}
         .badge-drop { background-color: #e83e8c; }
         .badge-super { background-color: #007bff; }
+        .badge-super-2 { background-color: #17a2b8; } /* Teal for the second half */
+        
+        /* NEW: Visual styling to link superset pairs together */
+        .superset-link { border-left: 4px solid #007bff; background-color: #f4f9ff; }
+        .superset-link-top { border-bottom: none; border-bottom-left-radius: 0; border-bottom-right-radius: 0; margin-bottom: 0; }
+        .superset-link-bottom { border-top-left-radius: 0; border-top-right-radius: 0; border-top: 1px dashed #b8daff; }
+        
+        /* NEW: Info box for the modifier descriptions */
+        .modifier-desc { font-size: 12px; color: #555; background: #f8f9fa; padding: 10px; border-radius: 4px; margin-top: 0px; margin-bottom: 10px; border-left: 3px solid #ccc; line-height: 1.4;}
     </style>
 </head>
 <body>
@@ -81,11 +89,16 @@
         <input type="number" id="targetWeight" placeholder="Target Weight in kg (e.g., 60)">
         
         <label style="font-size: 14px; font-weight: bold; margin-top: 5px; display: block;">Advanced Modifier:</label>
-        <select id="exerciseModifier">
+        
+        <select id="exerciseModifier" onchange="updateModifierDesc()">
             <option value="0">Normal Sets</option>
-            <option value="1">Drop Set (Automatically drops weight on final set)</option>
-            <option value="2">Superset (Links this exercise with the NEXT one)</option>
+            <option value="1">Drop Set</option>
+            <option value="2">Superset</option>
         </select>
+        
+        <div id="modifierDesc" class="modifier-desc">
+            Standard exercise execution with regular rest periods.
+        </div>
         
         <button id="addUpdateBtn" onclick="addExercise()">+ Add to Routine</button>
     </div>
@@ -126,7 +139,6 @@
             "Abdominals": [ "Crunches", "Leg Raises", "Planks", "Cable Crunch", "Russian Twists", "Ab Wheel Rollouts", "Hanging Leg Raises", "Pallof Press", "Target Abs" ]
         };
 
-        // NEW: myRoutine elements are now arrays of 5: [Name, Sets, Reps, Weight, Modifier]
         let myRoutine = [];
         let editingIndex = -1;
         let draggedIndex = null;
@@ -142,6 +154,23 @@
                 if (pair[0] === variable) return decodeURIComponent(pair[1]);
             }
             return defaultValue || false;
+        }
+
+        // NEW: Handles updating the description box text based on the dropdown
+        function updateModifierDesc() {
+            const val = document.getElementById("exerciseModifier").value;
+            const desc = document.getElementById("modifierDesc");
+            
+            if (val === "0") {
+                desc.innerHTML = "Standard exercise execution with regular rest periods.";
+                desc.style.borderLeftColor = "#ccc";
+            } else if (val === "1") {
+                desc.innerHTML = "<strong>Drop Set logic applied:</strong> Automatically doubles the target sets on the watch. You will execute normal weight on odd sets, and dynamic reduced weight on even sets.";
+                desc.style.borderLeftColor = "#e83e8c"; // Pink indicator
+            } else if (val === "2") {
+                desc.innerHTML = "<strong>Superset logic applied:</strong> Links this exercise visually and functionally with the <strong>NEXT</strong> exercise in the list. The watch will bounce between the two until all sets are completed.";
+                desc.style.borderLeftColor = "#007bff"; // Blue indicator
+            }
         }
 
         function renderExerciseDropdown(filterText = "") {
@@ -189,6 +218,8 @@
 
         window.onload = function() {
             renderExerciseDropdown();
+            updateModifierDesc(); // Set initial text
+            
             const storedUrl = getQueryParam('googleUrl', '');
             if (storedUrl && storedUrl.trim() !== '') {
                 document.getElementById('googleStatusContainer').style.display = 'block';
@@ -235,9 +266,6 @@
                 let currentExercise = "";
                 let setNum = 1;
                 
-                // Note: History parsing will need to skip the modifier in V2 if you want it exact,
-                // but since the watch only reports Actual Reps/Weight in the summary, this parsing loop 
-                // still functions fine for V1 data.
                 for (let i = 3; i < parts.length; i++) {
                     if (isNaN(parts[i])) { currentExercise = parts[i]; setNum = 1; } 
                     else {
@@ -275,18 +303,28 @@
                 listDiv.innerHTML = '<p id="emptyMessage" style="color: gray; font-size: 12px;">No exercises added yet.</p>';
                 return;
             }
+            
+            let isSecondHalf = false;
+
             for (let i = 0; i < myRoutine.length; i++) {
                 let ex = myRoutine[i]; 
-                
-                // BACKWARD COMPATIBILITY: If loading an old V1 routine, default modifier to 0
                 let modifier = ex.length > 4 ? parseInt(ex[4]) : 0; 
                 
                 let badgeHTML = "";
-                if (modifier === 1) badgeHTML = '<span class="mod-badge badge-drop">DROP SET</span>';
-                if (modifier === 2) badgeHTML = '<span class="mod-badge badge-super">SUPERSET</span>';
+                if (modifier === 2) badgeHTML += '<span class="mod-badge badge-super">SUPER 1/2</span> ';
+                if (isSecondHalf) badgeHTML += '<span class="mod-badge badge-super-2">SUPER 2/2</span> ';
+                if (modifier === 1) badgeHTML += '<span class="mod-badge badge-drop">DROP SET</span> ';
 
                 let div = document.createElement("div");
                 div.className = "exercise-item";
+                
+                // NEW: Apply specific CSS classes to link superset pairs together
+                if (modifier === 2) {
+                    div.classList.add("superset-link", "superset-link-top");
+                } else if (isSecondHalf) {
+                    div.classList.add("superset-link", "superset-link-bottom");
+                }
+
                 div.setAttribute("draggable", "true");
                 div.setAttribute("ondragstart", `dragStart(event, ${i})`);
                 div.setAttribute("ondragover", `dragOver(event, this)`);
@@ -295,7 +333,12 @@
                 
                 let info = document.createElement("div");
                 info.className = "exercise-info";
-                info.innerHTML = `<span class="grab-handle">≡</span><strong>${ex[0]}</strong> ${badgeHTML}<br><span style="margin-left: 28px;">${ex[1]}s x ${ex[2]}r @ ${ex[3]}kg</span>`;
+                
+                // Indent the grab handle of the second superset exercise slightly to show attachment
+                let handle = `<span class="grab-handle">≡</span>`;
+                if (isSecondHalf) handle = `<span class="grab-handle" style="color:#007bff; margin-left:8px;">↳</span>`;
+                
+                info.innerHTML = `${handle}<strong>${ex[0]}</strong> ${badgeHTML}<br><span style="margin-left: 28px;">${ex[1]}s x ${ex[2]}r @ ${ex[3]}kg</span>`;
                 
                 let btnGroup = document.createElement("div");
                 btnGroup.innerHTML = `
@@ -305,6 +348,9 @@
                 div.appendChild(info);
                 div.appendChild(btnGroup);
                 listDiv.appendChild(div);
+                
+                // Flag the NEXT exercise as the second half
+                isSecondHalf = (modifier === 2);
             }
         }
 
@@ -330,7 +376,6 @@
 
             if(sets === "" || reps === "" || weight === "") { alert("Please fill out sets, reps, and weight!"); return; }
             
-            // NEW: Push the 5th modifier variable into the array
             const newExercise = [name, parseInt(sets), parseInt(reps), parseInt(weight), parseInt(modifier)];
 
             if (editingIndex === -1) myRoutine.push(newExercise);
@@ -346,7 +391,8 @@
             document.getElementById("targetSets").value = "";
             document.getElementById("targetReps").value = "";
             document.getElementById("targetWeight").value = "";
-            document.getElementById("exerciseModifier").value = "0"; // Reset modifier
+            document.getElementById("exerciseModifier").value = "0"; 
+            updateModifierDesc(); // Reset description
         }
 
         function deleteExercise(index) { myRoutine.splice(index, 1); renderRoutine(); }
@@ -360,8 +406,8 @@
             document.getElementById("targetReps").value = ex[2];
             document.getElementById("targetWeight").value = ex[3];
             
-            // Populate the modifier if it exists, otherwise default to 0
             document.getElementById("exerciseModifier").value = ex.length > 4 ? ex[4] : "0";
+            updateModifierDesc(); // Update description to match the edit
 
             editingIndex = index;
             document.getElementById("formTitle").innerText = "Edit Exercise";
@@ -394,10 +440,9 @@
                     if (importedData.n !== undefined && Array.isArray(importedData.e)) {
                         document.getElementById("routineName").value = importedData.n;
                         myRoutine = importedData.e.map(ex => {
-                            if (ex.length === 4) ex.push(0); // Append a '0' (Normal) modifier
+                            if (ex.length === 4) ex.push(0); 
                             return ex;
                         });
-                        
                         renderRoutine();
                         alert("Routine loaded successfully!");
                     } else { alert("Invalid file format."); }
@@ -421,7 +466,6 @@
               delimitedString = routineName;
               for (let i = 0; i < myRoutine.length; i++) {
                   let ex = myRoutine[i]; 
-                  // NEW: Append the modifier (ex[4]) to the export string payload! 
                   let mod = ex.length > 4 ? ex[4] : 0;
                   delimitedString += "|" + ex[0] + "|" + ex[1] + "|" + ex[2] + "|" + ex[3] + "|" + mod;
               }
