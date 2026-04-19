@@ -110,6 +110,28 @@
     </div>
 
     <div class="card">
+        <h3>Progression Settings</h3>
+        <label>Mode:</label>
+        <select id="progressionMode" onchange="toggleWeightIncrement()">
+            <option value="-1" selected>Off (no progression)</option>
+            <option value="0">Weight (increase target weight)</option>
+            <option value="1">Reps (increase target reps)</option>
+        </select>
+        
+        <div id="weightIncrementContainer" style="display:none;">
+            <label>Weight Increment:</label>
+            <select id="weightIncrement">
+                <option value="1">1kg</option>
+                <option value="2" selected>2kg</option>
+                <option value="2.5">2.5kg</option>
+                <option value="5">5kg</option>
+                <option value="10">10kg</option>
+            </select>
+        </div>
+        <p style="font-size: 11px; color:gray; margin-top:10px;">When you meet or exceed your targets, the app will automatically increase them for your next workout.</p>
+    </div>
+
+    <div class="card">
         <h3>Optional: Google Sheets Auto-Export</h3>
         
         <div id="googleStatusContainer" style="display: none; padding: 10px; background: #e8f5e9; border: 1px solid #c8e6c9; border-radius: 4px; margin-bottom: 15px;">
@@ -152,6 +174,11 @@
                 if (pair[0] === variable) return decodeURIComponent(pair[1]);
             }
             return defaultValue || false;
+        }
+
+        function toggleWeightIncrement() {
+            const mode = document.getElementById("progressionMode").value;
+            document.getElementById("weightIncrementContainer").style.display = (mode === "0") ? "block" : "none";
         }
 
         function updateModifierDesc() {
@@ -493,6 +520,8 @@
 
             const configData = {
                 routineData: delimitedString,
+                progressionMode: document.getElementById("progressionMode").value,
+                weightIncrement: document.getElementById("weightIncrement").value,
                 googleUrl: document.getElementById("googleUrlInput").value,
                 googlePwd: document.getElementById("googlePwdInput").value,
                 clearHistory: shouldClearHistory,
