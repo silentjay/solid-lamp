@@ -2,35 +2,42 @@
 
 # GymTracker - Smart Gym Tracker for Pebble
 
-A fully-featured, standalone workout tracker for Pebble smartwatches with smart rest timers, haptic coaching, and automatic Google Sheets export. 
+A fully-featured, standalone workout tracker for Pebble smartwatches with smart rest timers, advanced modifiers (Drop Sets & Supersets), haptic coaching, and automatic Google Sheets export. 
 
 You can install the app directly from the App Store here: https://apps.repebble.com/0664a987078943a28f196064
 
 You can configure your routines using the companion website here: [https://oliverano95.github.io/GymTracker/](https://oliverano95.github.io/GymTracker/)
 
-## Features
+## ✨ Features
 * **Phone-Free Tracking:** Log reps and weight directly from your wrist.
-* **Smart Rest Coach:** Automatic rest timers with custom haptic feedback.
+* **Advanced Modifiers:** Support for **Drop Sets** (automatically reduces target weight and doubles sets) and **Supersets** (links exercises together and bounces between them with custom transition timers).
+* **Auto-Progression:** Automatically increases targets when workout goals are met. You can set it to auto-increase weight or reps for your next workout if you successfully hit your targets. 
+* **Smart Rest Coach:** Automatic rest timers with custom haptic feedback for regular sets, exercises, and superset transitions.
+* **On-Watch Variations:** Double-click to append tags like `(Seated)`, `(Dumbbell)`, or `(Cable)` to exercises on the fly without touching your phone.
 * **Routine Builder:** Create up to 7 custom routines via the web interface.
 * **Data Privacy:** Workouts are saved locally to your phone for CSV export, with an optional Google Sheets auto-sync for power users.
 
-## Developer Note & Disclaimer
-This app was built entirely with the help of AI (Gemini). I have done my best to ensure the code is as secure, lean, and optimized as possible. However, if you are an experienced C or Pebble developer and see ways to make the architecture or memory management even better, I am always eager to learn! 
+## 🤝 Developer Note & Credits
+This app was built entirely with the help of AI (Gemini). I have done my best to ensure the code is as secure, lean, and optimized as possible for the Pebble's memory constraints. 
 
-Please feel free to open an Issue, submit a Pull Request, or reach out with any feedback or improvements.
+**Special Shoutout:** A massive thank you to GitHub user **@silentjay** for building and contributing the Auto-Progression feature! 
+
+If you are an experienced C or Pebble developer and see ways to make the architecture even better, I am always eager to learn. Please feel free to open an Issue, submit a Pull Request, or reach out with any feedback.
 
 ## ⌚ How to Use the App
 
 ### 1. Building Your Routine (Phone)
 1. Open the **Pebble App** on your phone, go to your watchfaces/apps, and click the **Settings** gear icon next to this app.
 2. This opens the **Companion Website**. Use the dropdowns to add exercises, target sets, reps, and weight.
-3. Drag and drop exercises using the `≡` handle to reorder them.
-4. Click **Save & Send to Pebble**. The routine will instantly beam to your watch via Bluetooth!
+3. *Optional:* Set an advanced modifier (Drop Set or Superset) for your exercise.
+4. Drag and drop exercises using the `≡` handle to reorder them.
+5. Click **Save & Send to Pebble**. The routine will instantly beam to your watch via Bluetooth!
 
 ### 2. Working Out (Watch)
 Leave your phone in your locker! All controls are designed to be used without looking, using the Pebble's physical buttons:
 * **Up / Down Buttons:** Adjust the actual reps or weight you lifted.
 * **Short-Press Select:** Toggle between editing your Reps and your Weight.
+* **Double-Click Select:** Open the "Variations" menu to add modifiers to your current exercise name.
 * **Long-Press Select (500ms):** Log the set! The watch will give a double-vibration and start your automatic Rest Timer.
 * **Skip Rest:** If you are ready to lift before the timer finishes, just short-press Select to skip the rest period.
 
@@ -56,7 +63,7 @@ For power users, you can bypass the manual CSV download and have the watch beam 
 
 ### Step 2: Add the Code
 1. Delete any code currently in the script editor.
-2. In this GitHub repository, open the file named [`google_sheets_script.gs`](https://github.com/oliverano95/solid-lamp/blob/main/google_sheets_script.gs).
+2. In this GitHub repository, open the file named [`google_sheets_script.gs`](https://github.com/oliverano95/GymTracker/blob/main/google_sheets_script.gs).
 3. Copy all the code from that file and paste it into your Google Apps Script editor.
 4. On line 8 of the code, change the `mySecretPassword` variable to a secure password of your choice.
 5. Click the **Save** icon (the floppy disk).
