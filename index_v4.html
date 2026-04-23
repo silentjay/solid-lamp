@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Pebble Gym Tracker Setup</title>
+    
+    <style>
+        body { font-family: Arial, sans-serif; background-color: #f4f4f9; padding: 20px; max-width: 400px; margin: 0 auto; }
+        .card { background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        input, select, button { width: 100%; padding: 10px; margin-bottom: 10px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; }
+        button { background-color: #FF4700; color: white; font-weight: bold; border: none; cursor: pointer; }
+        button:hover { background-color: #e64000; }
+        
+        .flex-row { display: flex; gap: 10px; }
+        .secondary-btn { background-color: #6c757d; }
+        .secondary-btn:hover { background-color: #5a6268; }
+        
+        .exercise-item { background: #eee; padding: 10px; margin-bottom: 5px; border-radius: 4px; font-size: 14px; display: flex; justify-content: space-between; align-items: center; cursor: grab; transition: background 0.2s; }
+        .exercise-item:active { cursor: grabbing; }
+        .exercise-item.drag-over { border-top: 3px solid #FF4700; background: #e2e2e2; }
+        
+        .small-btn { width: auto; padding: 5px 8px; margin: 0 0 0 5px; font-size: 12px; display: inline-block; }
+        .delete-btn { background-color: #dc3545; }
+        .delete-btn:hover { background-color: #c82333; }
+        
+        .grab-handle { color: #999; margin-right: 10px; font-size: 18px; user-select: none; }
+        .exercise-info { flex-grow: 1; }
+        
+        .history-item { font-size: 12px; padding: 8px; border-bottom: 1px solid #eee; }
+        .history-item:last-child { border-bottom: none; }
+
+        #exerciseSearch { border: 2px solid #FF4700; background-color: #fffaf5; }
+        
+        .mod-badge { font-size: 10px; font-weight: bold; padding: 2px 6px; border-radius: 10px; margin-left: 5px; color: white; vertical-align: middle;}
+        .badge-drop { background-color: #e83e8c; }
+        .badge-super { background-color: #007bff; }
+        .badge-super-2 { background-color: #17a2b8; } 
+        
+        .superset-link { border-left: 4px solid #007bff; background-color: #f4f9ff; }
+        .superset-link-top { border-bottom: none; border-bottom-left-radius: 0; border-bottom-right-radius: 0; margin-bottom: 0; }
+        .superset-link-bottom { border-top-left-radius: 0; border-top-right-radius: 0; border-top: 1px dashed #b8daff; }
+        
+        .modifier-desc { font-size: 12px; color: #555; background: #f8f9fa; padding: 10px; border-radius: 4px; margin-top: 0px; margin-bottom: 10px; border-left: 3px solid #ccc; line-height: 1.4;}
+    </style>
+</head>
+<body>
+
+    <h2>Gym Routine Setup</h2>
+
+    <div class="card" style="border: 2px solid #FF4700;">
+        <h3 style="margin-top: 0; color: #FF4700;">Workout History</h3>
+        <p style="font-size: 12px; color: gray; margin-top: 0;">Workouts are saved locally to your phone. Download them here.</p>
+        
+        <div id="historyList" style="max-height: 150px; overflow-y: auto; background: #fafafa; border: 1px solid #ddd; border-radius: 4px; margin-bottom: 10px; padding: 5px;">
+            <p style="font-size: 12px; text-align: center; color: gray;">Loading history...</p>
+        </div>
+        
+        <div class="flex-row">
+            <button onclick="downloadCSV()">Download CSV</button>
+            <button class="secondary-btn delete-btn" onclick="clearHistory()">Clear History</button>
+        </div>
+    </div>
+
+    <div class="card">
+        <h3>Manage Routine Files</h3>
+        <div class="flex-row">
+            <button class="secondary-btn" onclick="document.getElementById('importFile').click()">Load Routine</button>
+            <button class="secondary-btn" onclick="exportJSON()">Save to File</button>
+        </div>
+        <input type="file" id="importFile" accept=".json" style="display: none;" onchange="importJSON(event)">
+    </div>
+
+    <div class="card">
+        <label>Routine Name:</label>
+        <input type="text" id="routineName" placeholder="e.g., Push Day, Leg Day">
+    </div>
+
+    <div class="card">
+        <h3 id="formTitle">Add Exercise</h3>
+        
+        <input type="text" id="exerciseSearch" placeholder="🔍 Search exercises..." onkeyup="filterExercises()">
+        <select id="exerciseSelect"></select>
+        
+        <input type="number" id="targetSets" placeholder="Target Sets (e.g., 3)">
+        <input type="number" id="targetReps" placeholder="Target Reps (e.g., 10)">
+        <input type="number" id="targetWeight" placeholder="Target Weight in kg (e.g., 60)">
+        
+        <label style="font-size: 14px; font-weight: bold; margin-top: 5px; display: block;">Advanced Modifier:</label>
+        
+        <select id="exerciseModifier" onchange="updateModifierDesc()">
+            <option value="0">Normal Sets</option>
+            <option value="1">Drop Set</option>
+            <option value="2">Superset</option>
+        </select>
+        
+        <div id="modifierDesc" class="modifier-desc">
+            Standard exercise execution with regular rest periods.
+        </div>
+        
+        <button id="addUpdateBtn" onclick="addExercise()">+ Add to Routine</button>
+    </div>
+
+    <div class="card">
+        <h3>Your Routine:</h3>
+        <p style="font-size: 11px; color: gray; margin-top: 0;">Drag and drop items to reorder them.</p>
+        <div id="routineList">
+            <p id="emptyMessage" style="color: gray; font-size: 12px;">No exercises added yet.</p>
+        </div>
+    </div>
+
+    <div class="card">
+        <h3>Progression Settings</h3>
+        <label>Mode:</label>
+        <select id="progressionMode" onchange="toggleWeightIncrement()">
+            <option value="-1" selected>Off (no progression)</option>
+            <option value="0">Weight (increase target weight)</option>
+            <option value="1">Reps (increase target reps)</option>
+        </select>
+        
+        <div id="weightIncrementContainer" style="display:none;">
+            <label>Weight Increment:</label>
+            <select id="weightIncrement">
+                <option value="1">1kg</option>
+                <option value="2" selected>2kg</option>
+                <option value="3">3g</option>
+                <option value="4">4g</option>
+                <option value="5">5g</option>
+                <option value="6">6kg</option>
+                <option value="7">7kg</option>
+                <option value="8">8kg</option>
+                <option value="9">9kg</option>
+                <option value="10">10kg</option>
+            </select>
+        </div>
+        <p style="font-size: 11px; color:gray; margin-top:10px;">When you meet or exceed your targets, the app will automatically increase them for your next workout.</p>
+    </div>
+
+    <div class="card">
+        <h3>Optional: Google Sheets Auto-Export</h3>
+        
+        <div id="googleStatusContainer" style="display: none; padding: 10px; background: #e8f5e9; border: 1px solid #c8e6c9; border-radius: 4px; margin-bottom: 15px;">
+            <span style="color: #2e7d32; font-weight: bold;">✅ Cloud Sync Configured</span>
+            <p style="font-size: 11px; margin: 5px 0 0 0; color: #1b5e20;">Your URL and password are securely saved on your phone. Leave the fields below blank to keep your current settings, or enter new ones to overwrite.</p>
+            <button type="button" class="small-btn delete-btn" style="margin-top: 8px;" onclick="flagClearGoogle()">Wipe Saved Credentials</button>
+        </div>
+
+        <p style="font-size: 12px; color: gray; margin-top: 0;">Advanced users: Paste your Apps Script URL here to auto-sync workouts to the cloud in the background.</p>
+        <label>Google Script URL:</label>
+        <input type="text" id="googleUrlInput" placeholder="https://script.google.com/macros/s/.../exec">
+        <label>Export Password:</label>
+        <input type="password" id="googlePwdInput" placeholder="Your secret password">
+    </div>
+
+    <button onclick="saveAndSend()" style="padding: 15px; font-size: 18px;">Save & Send to Pebble</button>
+
+    <script>
+        const exerciseDatabase = {
+            "Chest": [ "Bench Press", "Incline Bench Press", "Decline Bench Press", "Dumbbell Flyes", "Cable Crossovers", "Push-Ups", "Pec Deck", "Chest Dips" ],
+            "Back": [ "Deadlift", "Pull-Ups", "Chin-Ups", "Barbell Row", "Dumbbell Row", "Lat Pulldown", "Seated Cable Row", "T-Bar Row", "Back Extensions", "Facepulls" ],
+            "Shoulders": [ "Overhead Press", "Arnold Press", "Lateral Raises", "Front Raises", "Upright Rows", "Reverse Pec Deck", "Shrugs", "Push Press" ],
+            "Arms": [ "Bicep Curls", "Hammer Curls", "Preacher Curls", "Concentration Curls", "Tricep Extensions", "Skull Crushers", "Tricep Pushdowns", "Tricep Dips" ],
+            "Legs": [ "Squats", "Leg Press", "Lunges", "Leg Extensions", "Leg Curls", "Calf Raises", "Romanian Deadlifts", "Bulgarian Split Squats", "Hack Squat" ],
+            "Abdominals": [ "Crunches", "Leg Raises", "Planks", "Cable Crunch", "Russian Twists", "Ab Wheel Rollouts", "Hanging Leg Raises", "Pallof Press", "Target Abs" ]
+        };
+
+        let myRoutine = [];
+        let editingIndex = -1;
+        let draggedIndex = null;
+        let workoutHistory = [];
+        let shouldClearHistory = false;
+        let shouldClearGoogle = false; 
+
+        function getQueryParam(variable, defaultValue) {
+            var query = location.search.substring(1);
+            var vars = query.split('&');
+            for (var i = 0; i < vars.length; i++) {
+                var pair = vars[i].split('=');
+                if (pair[0] === variable) return decodeURIComponent(pair[1]);
+            }
+            return defaultValue || false;
+        }
+
+        function toggleWeightIncrement() {
+            const mode = document.getElementById("progressionMode").value;
+            document.getElementById("weightIncrementContainer").style.display = (mode === "0") ? "block" : "none";
+        }
+
+        function updateModifierDesc() {
+            const val = document.getElementById("exerciseModifier").value;
+            const desc = document.getElementById("modifierDesc");
+            
+            if (val === "0") {
+                desc.innerHTML = "Standard exercise execution with regular rest periods.";
+                desc.style.borderLeftColor = "#ccc";
+            } else if (val === "1") {
+                desc.innerHTML = "<strong>Drop Set logic applied:</strong> Automatically doubles the target sets on the watch. You will execute normal weight on odd sets, and dynamic reduced weight on even sets.";
+                desc.style.borderLeftColor = "#e83e8c"; 
+            } else if (val === "2") {
+                desc.innerHTML = "<strong>Superset logic applied:</strong> Links this exercise visually and functionally with the <strong>NEXT</strong> exercise in the list. The watch will bounce between the two until all sets are completed.";
+                desc.style.borderLeftColor = "#007bff"; 
+            }
+        }
+
+        function renderExerciseDropdown(filterText = "") {
+            const dropdown = document.getElementById("exerciseSelect");
+            dropdown.innerHTML = ""; 
+            const lowerFilter = filterText.trim().toLowerCase();
+            let matchFound = false;
+
+            for (const [group, exercises] of Object.entries(exerciseDatabase)) {
+                const filteredExercises = exercises.filter(ex => ex.toLowerCase().includes(lowerFilter));
+                if (filteredExercises.length > 0) {
+                    matchFound = true;
+                    const optgroup = document.createElement("optgroup");
+                    optgroup.label = "── " + group.toUpperCase() + " ──";
+                    filteredExercises.forEach(ex => {
+                        const option = document.createElement("option");
+                        option.value = ex;
+                        option.text = ex;
+                        optgroup.appendChild(option);
+                    });
+                    dropdown.appendChild(optgroup);
+                }
+            }
+            
+            if (filterText.trim() !== "") {
+                const customGroup = document.createElement("optgroup");
+                customGroup.label = "── CUSTOM EXERCISE ──";
+                const customOption = document.createElement("option");
+                customOption.value = filterText.trim();
+                customOption.text = 'Add "' + filterText.trim() + '"';
+                customGroup.appendChild(customOption);
+                dropdown.appendChild(customGroup);
+            } else if (!matchFound) {
+                const option = document.createElement("option");
+                option.text = "No exercises found...";
+                option.disabled = true;
+                dropdown.appendChild(option);
+            }
+        }
+
+        function filterExercises() {
+            const searchTerm = document.getElementById("exerciseSearch").value;
+            renderExerciseDropdown(searchTerm);
+        }
+
+        window.onload = function() {
+            renderExerciseDropdown();
+            updateModifierDesc(); 
+            
+            const storedUrl = getQueryParam('googleUrl', '');
+            if (storedUrl && storedUrl.trim() !== '') {
+                document.getElementById('googleStatusContainer').style.display = 'block';
+            }
+            const historyStr = getQueryParam('history', '[]');
+            try { workoutHistory = JSON.parse(historyStr); } catch(e) { workoutHistory = []; }
+            renderHistory();
+        };
+
+        function flagClearGoogle() {
+            if (confirm("Are you sure you want to completely remove your Google Settings from the Pebble App?")) {
+                shouldClearGoogle = true;
+                document.getElementById('googleStatusContainer').style.display = 'none';
+                document.getElementById('googleUrlInput').value = '';
+                document.getElementById('googlePwdInput').value = '';
+                alert("Credentials will be permanently wiped when you click 'Save & Send to Pebble'.");
+            }
+        }
+
+        function renderHistory() {
+            const list = document.getElementById("historyList");
+            if (workoutHistory.length === 0) {
+                list.innerHTML = '<p style="font-size: 12px; text-align: center; color: gray;">No completed workouts saved yet.</p>';
+                return;
+            }
+            list.innerHTML = '';
+            [...workoutHistory].reverse().forEach(entry => {
+                const date = new Date(entry.timestamp).toLocaleString();
+                const parts = entry.data.split('|');
+                const name = parts[0] || "Unknown Routine";
+                const mins = Math.floor(parseInt(parts[2] || 0) / 60);
+                list.innerHTML += `<div class="history-item"><strong>${name}</strong><br><span style="color:gray">${date} • ${mins} mins</span></div>`;
+            });
+        }
+
+        function downloadCSV() {
+            if (workoutHistory.length === 0) { alert("No history to download!"); return; }
+            let csvContent = "Date,Routine,Duration (s),Exercise,Set,Reps,Weight\n";
+            workoutHistory.forEach(entry => {
+                const parts = entry.data.split('|');
+                const routine = parts[0] || "Unknown";
+                const date = parts[1] || "";
+                const duration = parts[2] || "0";
+                let currentExercise = "";
+                let setNum = 1;
+                
+                for (let i = 3; i < parts.length; i++) {
+                    if (isNaN(parts[i])) { currentExercise = parts[i]; setNum = 1; } 
+                    else {
+                        let reps = parts[i];
+                        let weight = parts[i+1];
+                        csvContent += `${date},${routine},${duration},${currentExercise},${setNum},${reps},${weight}\n`;
+                        setNum++;
+                        i++; 
+                    }
+                }
+            });
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement("a");
+            const url = URL.createObjectURL(blob);
+            link.setAttribute("href", url);
+            link.setAttribute("download", "pebble_workouts.csv");
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        function clearHistory() {
+            if (confirm("Are you sure you want to delete all saved workouts from your phone?")) {
+                workoutHistory = [];
+                shouldClearHistory = true;
+                renderHistory();
+            }
+        }
+
+        function renderRoutine() {
+            const listDiv = document.getElementById("routineList");
+            listDiv.innerHTML = ""; 
+            if (myRoutine.length === 0) {
+                listDiv.innerHTML = '<p id="emptyMessage" style="color: gray; font-size: 12px;">No exercises added yet.</p>';
+                return;
+            }
+            
+            let isSecondHalf = false;
+
+            for (let i = 0; i < myRoutine.length; i++) {
+                let ex = myRoutine[i]; 
+                let modifier = ex.length > 4 ? parseInt(ex[4]) : 0; 
+                
+                // SAFETY CHECK 1: The Chain Breaker & Drop Set Catcher!
+                // If this is the second half of a superset, it CANNOT initiate another superset,
+                // and it CANNOT be a drop set. It must be a completely normal exercise block.
+                if (isSecondHalf && modifier !== 0) {
+                    modifier = 0; 
+                    ex[4] = 0; // Fix the underlying data automatically
+                }
+
+                let badgeHTML = "";
+                if (modifier === 2) badgeHTML += '<span class="mod-badge badge-super">SUPER 1/2</span> ';
+                if (isSecondHalf) badgeHTML += '<span class="mod-badge badge-super-2">SUPER 2/2</span> ';
+                if (modifier === 1) badgeHTML += '<span class="mod-badge badge-drop">DROP SET</span> ';
+
+                let div = document.createElement("div");
+                div.className = "exercise-item";
+                
+                if (modifier === 2) {
+                    div.classList.add("superset-link", "superset-link-top");
+                } else if (isSecondHalf) {
+                    div.classList.add("superset-link", "superset-link-bottom");
+                }
+
+                div.setAttribute("draggable", "true");
+                div.setAttribute("ondragstart", `dragStart(event, ${i})`);
+                div.setAttribute("ondragover", `dragOver(event, this)`);
+                div.setAttribute("ondragleave", `dragLeave(event, this)`);
+                div.setAttribute("ondrop", `drop(event, ${i}, this)`);
+                
+                let info = document.createElement("div");
+                info.className = "exercise-info";
+                
+                let handle = `<span class="grab-handle">≡</span>`;
+                if (isSecondHalf) handle = `<span class="grab-handle" style="color:#007bff; margin-left:8px;">↳</span>`;
+                
+                info.innerHTML = `${handle}<strong>${ex[0]}</strong> ${badgeHTML}<br><span style="margin-left: 28px;">${ex[1]}s x ${ex[2]}r @ ${ex[3]}kg</span>`;
+                
+                let btnGroup = document.createElement("div");
+                btnGroup.innerHTML = `
+                    <button class="small-btn secondary-btn" onclick="editExercise(${i})">Edit</button>
+                    <button class="small-btn delete-btn" onclick="deleteExercise(${i})">X</button>
+                `;
+                div.appendChild(info);
+                div.appendChild(btnGroup);
+                listDiv.appendChild(div);
+                
+                isSecondHalf = (modifier === 2);
+            }
+        }
+
+        function dragStart(event, index) { draggedIndex = index; event.dataTransfer.setData('text/plain', index); event.dataTransfer.effectAllowed = 'move'; }
+        function dragOver(event, element) { event.preventDefault(); event.dataTransfer.dropEffect = 'move'; element.classList.add('drag-over'); }
+        function dragLeave(event, element) { element.classList.remove('drag-over'); }
+        function drop(event, targetIndex, element) {
+            event.preventDefault();
+            element.classList.remove('drag-over');
+            if (draggedIndex === null || draggedIndex === targetIndex) return;
+            const draggedItem = myRoutine.splice(draggedIndex, 1)[0];
+            myRoutine.splice(targetIndex, 0, draggedItem);
+            renderRoutine();
+            draggedIndex = null;
+        }
+
+        function addExercise() {
+            const name = document.getElementById("exerciseSelect").value;
+            const sets = document.getElementById("targetSets").value;
+            const reps = document.getElementById("targetReps").value;
+            const weight = document.getElementById("targetWeight").value;
+            const modifier = document.getElementById("exerciseModifier").value;
+
+            if(sets === "" || reps === "" || weight === "") { alert("Please fill out sets, reps, and weight!"); return; }
+            
+            const newExercise = [name, parseInt(sets), parseInt(reps), parseInt(weight), parseInt(modifier)];
+
+            if (editingIndex === -1) myRoutine.push(newExercise);
+            else {
+                myRoutine[editingIndex] = newExercise;
+                editingIndex = -1; 
+                document.getElementById("formTitle").innerText = "Add Exercise";
+                document.getElementById("addUpdateBtn").innerText = "+ Add to Routine";
+            }
+            renderRoutine(); 
+            document.getElementById("exerciseSearch").value = "";
+            renderExerciseDropdown();
+            document.getElementById("targetSets").value = "";
+            document.getElementById("targetReps").value = "";
+            document.getElementById("targetWeight").value = "";
+            document.getElementById("exerciseModifier").value = "0"; 
+            updateModifierDesc(); 
+        }
+
+        function deleteExercise(index) { myRoutine.splice(index, 1); renderRoutine(); }
+
+        function editExercise(index) {
+            let ex = myRoutine[index];
+            document.getElementById("exerciseSearch").value = ex[0];
+            renderExerciseDropdown(ex[0]);
+            document.getElementById("exerciseSelect").value = ex[0];
+            document.getElementById("targetSets").value = ex[1];
+            document.getElementById("targetReps").value = ex[2];
+            document.getElementById("targetWeight").value = ex[3];
+            
+            document.getElementById("exerciseModifier").value = ex.length > 4 ? ex[4] : "0";
+            updateModifierDesc(); 
+
+            editingIndex = index;
+            document.getElementById("formTitle").innerText = "Edit Exercise";
+            document.getElementById("addUpdateBtn").innerText = "Update Exercise";
+            window.scrollTo(0, 0);
+        }
+
+        function exportJSON() {
+            if (myRoutine.length > 0) {
+                let lastEx = myRoutine[myRoutine.length - 1];
+                let lastMod = lastEx.length > 4 ? parseInt(lastEx[4]) : 0;
+                if (lastMod === 2) {
+                    alert("Export failed: The last exercise in your routine is marked as a Superset, but there is no exercise below it to pair with! Please edit it.");
+                    return;
+                }
+            }
+
+            const routineName = document.getElementById("routineName").value || "My_Routine";
+            const v2Routine = myRoutine.map(ex => {
+                return [ex[0], ex[1], ex[2], ex[3], ex.length > 4 ? ex[4] : 0];
+            });
+            const finalData = { n: routineName, e: v2Routine };
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(finalData));
+            const downloadAnchorNode = document.createElement('a');
+            downloadAnchorNode.setAttribute("href", dataStr);
+            downloadAnchorNode.setAttribute("download", routineName.replace(/\s+/g, '_') + ".json");
+            document.body.appendChild(downloadAnchorNode);
+            downloadAnchorNode.click();
+            downloadAnchorNode.remove();
+        }
+
+        function importJSON(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const importedData = JSON.parse(e.target.result);
+                    if (importedData.n !== undefined && Array.isArray(importedData.e)) {
+                        document.getElementById("routineName").value = importedData.n;
+                        myRoutine = importedData.e.map(ex => {
+                            if (ex.length === 4) ex.push(0); 
+                            return ex;
+                        });
+                        renderRoutine();
+                        alert("Routine loaded successfully!");
+                    } else { alert("Invalid file format."); }
+                } catch (err) { alert("Error reading file."); }
+                event.target.value = ''; 
+            };
+            reader.readAsText(file);
+        }
+
+        function saveAndSend() {
+            if (myRoutine.length > 0) {
+                let lastEx = myRoutine[myRoutine.length - 1];
+                let lastMod = lastEx.length > 4 ? parseInt(lastEx[4]) : 0;
+                if (lastMod === 2) {
+                    alert("Send failed: The last exercise in your routine is marked as a Superset, but there is no exercise below it to pair with! Please edit it.");
+                    return;
+                }
+            }
+
+            const routineName = document.getElementById("routineName").value || "My Routine";
+            if (myRoutine.length === 0 && !shouldClearHistory && !shouldClearGoogle) {
+                if(!document.getElementById("googleUrlInput").value && !document.getElementById("googlePwdInput").value){
+                  alert("Please add at least one exercise or configure settings.");
+                  return;
+                }
+            }
+
+            let delimitedString = "";
+            if (myRoutine.length > 0) {
+              delimitedString = routineName;
+              for (let i = 0; i < myRoutine.length; i++) {
+                  let ex = myRoutine[i]; 
+                  let mod = ex.length > 4 ? ex[4] : 0;
+                  delimitedString += "|" + ex[0] + "|" + ex[1] + "|" + ex[2] + "|" + ex[3] + "|" + mod;
+              }
+            }
+
+            const configData = {
+                routineData: delimitedString,
+                progressionMode: document.getElementById("progressionMode").value,
+                weightIncrement: document.getElementById("weightIncrement").value,
+                googleUrl: document.getElementById("googleUrlInput").value,
+                googlePwd: document.getElementById("googlePwdInput").value,
+                clearHistory: shouldClearHistory,
+                clearGoogle: shouldClearGoogle
+            };
+
+            var returnTo = getQueryParam('return_to', 'pebblejs://close#');
+            window.location.href = returnTo + encodeURIComponent(JSON.stringify(configData));
+        }
+    </script>
+</body>
+</html>
