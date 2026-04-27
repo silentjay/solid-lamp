@@ -1198,6 +1198,23 @@ static void skip_rest() {
   update_workout_ui(false);
 }
 
+static void skip_exercise() {
+  if (s_is_resting) return;
+  if (s_curr_ex_idx + 1 >= s_total_exercises) return;
+
+  Exercise temp = s_exercises[s_curr_ex_idx];
+  int next_idx = s_curr_ex_idx + 1;
+
+  s_exercises[s_curr_ex_idx] = s_exercises[next_idx];
+  s_exercises[next_idx] = temp;
+
+  if (s_exercises[s_curr_ex_idx].modifier == 2) {
+    s_exercises[s_curr_ex_idx].current_set = s_exercises[next_idx].current_set;
+  }
+
+  update_workout_ui(true);
+}
+
 static void tick_handler(struct tm *tick_time, TimeUnits units_changed) {
   // NEW: Only increment the workout duration if we aren't paused
   if (!s_is_paused) {
@@ -1262,6 +1279,11 @@ static void wo_down_click(ClickRecognizerRef recognizer, void *context) {
   else if (s_edit_mode == 1 && s_temp_weight > 0) s_temp_weight--;
   update_workout_ui(false);
 }
+
+static void wo_down_long_click(ClickRecognizerRef recognizer, void *context) {
+  skip_exercise();
+}
+
 static void wo_select_short_click(ClickRecognizerRef recognizer, void *context) {
   if (s_is_resting) { skip_rest(); return; }
   s_edit_mode = !s_edit_mode; 
@@ -1369,6 +1391,7 @@ static void wo_back_click(ClickRecognizerRef recognizer, void *context) {
 static void wo_click_provider(void *context) {
   window_single_click_subscribe(BUTTON_ID_UP, wo_up_click);
   window_single_click_subscribe(BUTTON_ID_DOWN, wo_down_click);
+  window_long_click_subscribe(BUTTON_ID_DOWN, s_long_press_ms, wo_down_long_click, NULL);
   window_single_click_subscribe(BUTTON_ID_SELECT, wo_select_short_click);
   window_multi_click_subscribe(BUTTON_ID_SELECT, 2, 2, 300, true, wo_select_double_click); 
   window_long_click_subscribe(BUTTON_ID_SELECT, s_long_press_ms, wo_select_long_click, NULL); 
